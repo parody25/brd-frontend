@@ -32,8 +32,15 @@ export const createProject = async (name?: string): Promise<CreateProjectRespons
 };
 
 export const getProjects = async (): Promise<ProjectsListResponse> => {
-  const response = await api.get<ProjectsListResponse>('/projects');
-  return response.data;
+  try {
+    const response = await api.get<ProjectsListResponse>('/projects');
+    console.log('API Response for projects:', response);
+    console.log('Response data:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('API Error in getProjects:', error);
+    throw error;
+  }
 };
 
 // Document management

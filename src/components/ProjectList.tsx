@@ -29,18 +29,19 @@ const ProjectList: React.FC = () => {
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    const loadProjects = async () => {
-      dispatch({ type: 'SET_LOADING', payload: true });
-      try {
-        const response = await getProjects();
-        dispatch({ type: 'SET_PROJECTS', payload: response.projects });
-        dispatch({ type: 'SET_ERROR', payload: null });
-      } catch (error) {
-        dispatch({ type: 'SET_ERROR', payload: 'Failed to load projects' });
-      } finally {
-        dispatch({ type: 'SET_LOADING', payload: false });
-      }
-    };
+  const loadProjects = async () => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    try {
+      const response = await getProjects();
+      dispatch({ type: 'SET_PROJECTS', payload: response.projects });
+      dispatch({ type: 'SET_ERROR', payload: null });
+    } catch (error) {
+      console.error('Error loading projects:', error);
+      dispatch({ type: 'SET_ERROR', payload: `Failed to load projects: ${error instanceof Error ? error.message : 'Unknown error'}` });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  };
 
     loadProjects();
   }, [dispatch]);
