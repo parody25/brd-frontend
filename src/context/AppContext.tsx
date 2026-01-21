@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
-import { AppState, Project, Document } from '../types';
+import { AppState, Project, Document, BRD } from '../types';
 
 // Action types
 type AppAction =
@@ -10,13 +10,17 @@ type AppAction =
   | { type: 'SET_CURRENT_PROJECT'; payload: Project | null }
   | { type: 'SET_DOCUMENTS'; payload: Document[] }
   | { type: 'ADD_DOCUMENT'; payload: Document }
-  | { type: 'REMOVE_DOCUMENT'; payload: string };
+  | { type: 'REMOVE_DOCUMENT'; payload: string }
+  | { type: 'SET_BRDS'; payload: BRD[] }
+  | { type: 'ADD_BRD'; payload: BRD }
+  | { type: 'REMOVE_BRD'; payload: string };
 
 // Initial state
 const initialState: AppState = {
   projects: [],
   currentProject: null,
   documents: [],
+  brds: [],
   loading: false,
   error: null,
 };
@@ -42,6 +46,15 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
       return {
         ...state,
         documents: state.documents.filter(doc => doc.id !== action.payload),
+      };
+    case 'SET_BRDS':
+      return { ...state, brds: action.payload };
+    case 'ADD_BRD':
+      return { ...state, brds: [...state.brds, action.payload] };
+    case 'REMOVE_BRD':
+      return {
+        ...state,
+        brds: state.brds.filter(brd => brd.id !== action.payload),
       };
     default:
       return state;

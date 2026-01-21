@@ -15,7 +15,7 @@ import {
   Alert,
   Chip,
 } from '@mui/material';
-import { Add as AddIcon, Folder as FolderIcon, Description as DescriptionIcon } from '@mui/icons-material';
+import { Add as AddIcon, Folder as FolderIcon, Description as DescriptionIcon, AutoAwesome as AutoAwesomeIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { getProjects, createProject } from '../services/api';
@@ -56,6 +56,7 @@ const ProjectList: React.FC = () => {
         project_id: response.project_id,
         name: response.name,
         document_count: 0,
+        brd_count: 0,
         created_at: new Date().toISOString(),
       };
       dispatch({ type: 'ADD_PROJECT', payload: newProject });
@@ -129,6 +130,12 @@ const ProjectList: React.FC = () => {
                       {project.document_count} documents
                     </Typography>
                   </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <AutoAwesomeIcon sx={{ mr: 1, fontSize: 'small' }} />
+                    <Typography variant="body2" color="text.secondary">
+                      {project.brd_count} BRDs
+                    </Typography>
+                  </Box>
                   <Typography variant="body2" color="text.secondary">
                     Created: {formatDate(project.created_at)}
                   </Typography>
@@ -138,6 +145,13 @@ const ProjectList: React.FC = () => {
                     label={`${project.document_count} docs`}
                     size="small"
                     color="primary"
+                    variant="outlined"
+                    sx={{ mr: 1 }}
+                  />
+                  <Chip
+                    label={`${project.brd_count} BRDs`}
+                    size="small"
+                    color="secondary"
                     variant="outlined"
                   />
                 </CardActions>

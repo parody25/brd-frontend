@@ -14,14 +14,14 @@ import {
 } from '@mui/material';
 import { AutoAwesome as AutoAwesomeIcon, Download as DownloadIcon } from '@mui/icons-material';
 import { generateBRD } from '../services/api';
-import { saveAs } from 'file-saver';
 
 interface BRDGeneratorProps {
   projectId: string;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
-const BRDGenerator: React.FC<BRDGeneratorProps> = ({ projectId, onClose }) => {
+const BRDGenerator: React.FC<BRDGeneratorProps> = ({ projectId, onClose, onSuccess }) => {
   const [requirements, setRequirements] = useState('');
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -47,15 +47,16 @@ const BRDGenerator: React.FC<BRDGeneratorProps> = ({ projectId, onClose }) => {
         });
       }, 500);
 
-      const blob = await generateBRD(projectId, requirements);
+      await generateBRD(projectId, requirements);
 
       clearInterval(progressInterval);
       setProgress(100);
       setCompleted(true);
 
-      // Trigger download
-      const filename = `BRD_${projectId}.docx`;
-      saveAs(blob, filename);
+      // Call success callback if provided
+      if (onSuccess) {
+        onSuccess();
+      }
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate BRD');
@@ -117,7 +118,7 @@ const BRDGenerator: React.FC<BRDGeneratorProps> = ({ projectId, onClose }) => {
 
         {completed && (
           <Alert severity="success" sx={{ mb: 3 }}>
-            BRD generated successfully! The download should start automatically.
+            BRD generated and saved successfully! You can now view and download it from the BRD list below.
           </Alert>
         )}
       </DialogContent>
@@ -132,7 +133,7 @@ const BRDGenerator: React.FC<BRDGeneratorProps> = ({ projectId, onClose }) => {
             disabled={!requirements.trim() || generating}
             startIcon={generating ? <CircularProgress size={20} /> : <DownloadIcon />}
           >
-            {generating ? 'Generating...' : 'Generate BRD'}
+            {generating ? 'Generating...' : 'Generate & Save BRD'}
           </Button>
         )}
       </DialogActions>

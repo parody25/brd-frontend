@@ -27,9 +27,11 @@ import {
 } from '@mui/icons-material';
 import { useAppContext } from '../context/AppContext';
 import { getProjectDocuments, deleteDocument } from '../services/api';
-import { Document as DocumentType } from '../types';
+import { Document as DocumentType, BRD } from '../types';
 import DocumentUpload from './DocumentUpload';
 import BRDGenerator from './BRDGenerator';
+import BRDList from './BRDList';
+import BRDDetailsModal from './BRDDetailsModal';
 
 const ProjectDashboard: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -40,6 +42,9 @@ const ProjectDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showUpload, setShowUpload] = useState(false);
   const [showBRDGenerator, setShowBRDGenerator] = useState(false);
+  const [showBRDDetails, setShowBRDDetails] = useState(false);
+  const [selectedBRD, setSelectedBRD] = useState<BRD | null>(null);
+  const [brdRefreshTrigger, setBrdRefreshTrigger] = useState(0);
 
   const currentProject = state.projects.find(p => p.project_id === projectId);
 
@@ -151,6 +156,13 @@ const ProjectDashboard: React.FC = () => {
               size="small"
               color="primary"
               variant="outlined"
+              sx={{ mr: 1 }}
+            />
+            <Chip
+              label={`${currentProject.brd_count} BRDs`}
+              size="small"
+              color="secondary"
+              variant="outlined"
               sx={{ mr: 2 }}
             />
             <Typography variant="body2" color="text.secondary">
@@ -186,7 +198,7 @@ const ProjectDashboard: React.FC = () => {
       </Box>
 
       {/* Documents Section */}
-      <Paper sx={{ p: 3 }}>
+      <Paper sx={{ p: 3, mb: 3 }}>
         <Typography variant="h6" gutterBottom>
           Documents
         </Typography>
@@ -229,6 +241,18 @@ const ProjectDashboard: React.FC = () => {
         )}
       </Paper>
 
+      {/* BRD Section */}
+      <Paper sx={{ p: 3 }}>
+        <BRDList
+          projectId={projectId!}
+          refreshTrigger={brdRefreshTrigger}
+          onViewDetails={(brd: BRD) => {
+            setSelectedBRD(brd);
+            setShowBRDDetails(true);
+          }}
+        />
+      </Paper>
+
       {/* Upload Dialog */}
       {showUpload && (
         <DocumentUpload
@@ -243,8 +267,23 @@ const ProjectDashboard: React.FC = () => {
         <BRDGenerator
           projectId={projectId!}
           onClose={() => setShowBRDGenerator(false)}
+          onSuccess={() => {
+            // Refresh BRD list after generation
+            setBrdRefreshTrigger(prev => prev + 1);
+            setShowBRDGenerator(false);
+          }}
         />
       )}
+
+      {/* BRD Details Modal */}
+      <BRDDetailsModal
+        open={showBRDDetails}
+        onClose={() => {
+          setShowBRDDetails(false);
+          setSelectedBRD(null);
+        }}
+        brd={selectedBRD}
+      />
     </Box>
   );
 };

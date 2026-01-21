@@ -7,6 +7,8 @@ import {
   ProjectDocumentsResponse,
   DeleteDocumentResponse,
   BRDTemplateResponse,
+  BRDListResponse,
+  GenerateBRDResponse,
 } from '../types';
 
 const API_BASE_URL = 'http://localhost:8000';
@@ -80,18 +82,47 @@ export const deleteDocument = async (
   return response.data;
 };
 
-// BRD generation
+// BRD management
+export const getProjectBRDs = async (
+  projectId: string
+): Promise<BRDListResponse> => {
+  const response = await api.get<BRDListResponse>(`/projects/${projectId}/brds`);
+  return response.data;
+};
+
 export const generateBRD = async (
   projectId: string,
   requirements: string
-): Promise<Blob> => {
-  const response = await api.post<Blob>(
+): Promise<GenerateBRDResponse> => {
+  const response = await api.post<GenerateBRDResponse>(
     `/projects/${projectId}/generate_brd`,
     null,
     {
       params: { requirements },
+    }
+  );
+  return response.data;
+};
+
+export const downloadBRD = async (
+  projectId: string,
+  brdId: string
+): Promise<Blob> => {
+  const response = await api.get<Blob>(
+    `/projects/${projectId}/brds/${brdId}/download`,
+    {
       responseType: 'blob',
     }
+  );
+  return response.data;
+};
+
+export const deleteBRD = async (
+  projectId: string,
+  brdId: string
+): Promise<{ message: string }> => {
+  const response = await api.delete<{ message: string }>(
+    `/projects/${projectId}/brds/${brdId}`
   );
   return response.data;
 };
