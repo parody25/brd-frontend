@@ -127,6 +127,27 @@ export const deleteBRD = async (
   return response.data;
 };
 
+// Project management - additional operations
+export const deleteProject = async (
+  projectId: string
+): Promise<{ message: string }> => {
+  const response = await api.delete<{ message: string }>(
+    `/projects/${projectId}`
+  );
+  return response.data;
+};
+
+export const renameProject = async (
+  projectId: string,
+  newName: string
+): Promise<{ message: string }> => {
+  const response = await api.put<{ message: string }>(
+    `/projects/${projectId}`,
+    { name: newName }
+  );
+  return response.data;
+};
+
 export const getBRDTemplate = async (): Promise<BRDTemplateResponse> => {
   const response = await api.get<BRDTemplateResponse>('/brd_template');
   return response.data;

@@ -63,6 +63,9 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
       'application/vnd.ms-excel': ['.xls'],
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+      'message/rfc822': ['.eml'],
+      'text/plain': ['.txt'],
+      'application/msword': ['.doc'],
     },
     multiple: true,
     maxSize: 50 * 1024 * 1024, // 50MB
@@ -176,7 +179,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
               or click to select files
             </Typography>
             <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
-              Supported formats: PDF, DOCX, XLS, XLSX (max 50MB each)
+              Supported formats: PDF, DOCX, DOC, XLS, XLSX, EML, TXT (max 50MB each)
             </Typography>
           </Box>
         </Box>

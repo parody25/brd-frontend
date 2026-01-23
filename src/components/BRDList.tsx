@@ -18,6 +18,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  TextField,
 } from '@mui/material';
 import {
   Download as DownloadIcon,
@@ -45,6 +46,9 @@ const BRDList: React.FC<BRDListProps> = ({ projectId, onViewDetails, refreshTrig
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [brdToDelete, setBrdToDelete] = useState<BRD | null>(null);
+  const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
+  const [brdToDownload, setBrdToDownload] = useState<BRD | null>(null);
+  const [downloadFilename, setDownloadFilename] = useState('');
 
   const loadBRDs = useCallback(async () => {
     try {
@@ -64,11 +68,27 @@ const BRDList: React.FC<BRDListProps> = ({ projectId, onViewDetails, refreshTrig
     loadBRDs();
   }, [loadBRDs, refreshTrigger]);
 
-  const handleDownload = async (brd: BRD) => {
+  const handleDownloadClick = (brd: BRD) => {
+    setBrdToDownload(brd);
+    // Pre-fill with the original filename but without extension for easy editing
+    const nameWithoutExt = brd.filename.replace(/\.[^/.]+$/, '');
+    setDownloadFilename(nameWithoutExt);
+    setDownloadDialogOpen(true);
+  };
+
+  const handleDownloadConfirm = async () => {
+    if (!brdToDownload || !downloadFilename.trim()) return;
+
     try {
-      setDownloadingId(brd.id);
-      const blob = await downloadBRD(projectId, brd.id);
-      saveAs(blob, brd.filename);
+      setDownloadingId(brdToDownload.id);
+      const blob = await downloadBRD(projectId, brdToDownload.id);
+      // Add .docx extension if not present
+      const filename = downloadFilename.trim();
+      const finalFilename = filename.endsWith('.docx') ? filename : `${filename}.docx`;
+      saveAs(blob, finalFilename);
+      setDownloadDialogOpen(false);
+      setBrdToDownload(null);
+      setDownloadFilename('');
     } catch (err) {
       setError('Failed to download BRD');
     } finally {
@@ -196,7 +216,7 @@ const BRDList: React.FC<BRDListProps> = ({ projectId, onViewDetails, refreshTrig
                     )}
                     <IconButton
                       size="small"
-                      onClick={() => handleDownload(brd)}
+                      onClick={() => handleDownloadClick(brd)}
                       disabled={downloadingId === brd.id}
                       title="Download"
                     >
@@ -239,6 +259,48 @@ const BRDList: React.FC<BRDListProps> = ({ projectId, onViewDetails, refreshTrig
           <Button onClick={() => setDeleteConfirmOpen(false)}>Cancel</Button>
           <Button onClick={handleDeleteConfirm} color="error" variant="contained">
             Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Download Naming Dialog */}
+      <Dialog open={downloadDialogOpen} onClose={() => setDownloadDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Download BRD</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Enter a name for your BRD file. The .docx extension will be added automatically if not included.
+          </Typography>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Filename"
+            fullWidth
+            variant="outlined"
+            value={downloadFilename}
+            onChange={(e) => setDownloadFilename(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                handleDownloadConfirm();
+              }
+            }}
+            placeholder="Enter filename (e.g., Project_BRD)"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDownloadDialogOpen(false)}>Cancel</Button>
+          <Button
+            onClick={handleDownloadConfirm}
+            variant="contained"
+            disabled={!downloadFilename.trim() || downloadingId === brdToDownload?.id}
+          >
+            {downloadingId === brdToDownload?.id ? (
+              <>
+                <CircularProgress size={16} sx={{ mr: 1 }} />
+                Downloading...
+              </>
+            ) : (
+              'Download'
+            )}
           </Button>
         </DialogActions>
       </Dialog>
