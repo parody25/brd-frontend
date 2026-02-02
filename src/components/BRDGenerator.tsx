@@ -17,6 +17,7 @@ interface BRDGeneratorProps {
 
 const BRDGenerator: React.FC<BRDGeneratorProps> = ({ projectId, onClose, onSuccess }) => {
   const [requirements, setRequirements] = useState('');
+  const [processInstructions, setProcessInstructions] = useState('');
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +37,7 @@ const BRDGenerator: React.FC<BRDGeneratorProps> = ({ projectId, onClose, onSucce
         });
       }, 500);
 
-      await generateBRD(projectId, requirements);
+      await generateBRD(projectId, requirements, processInstructions);
       clearInterval(progressInterval);
       setProgress(100);
       setCompleted(true);
@@ -70,6 +71,15 @@ const BRDGenerator: React.FC<BRDGeneratorProps> = ({ projectId, onClose, onSucce
           value={requirements}
           onChange={(e) => setRequirements(e.target.value)}
           placeholder="Describe the business requirements, objectives, and scope for the BRD..."
+          disabled={generating}
+          sx={{ mb: 3 }}
+        />
+        <TextField
+          label="Process Flow Instructions (Optional)"
+          multiline rows={4} fullWidth
+          value={processInstructions}
+          onChange={(e) => setProcessInstructions(e.target.value)}
+          placeholder="Describe the process steps, system interactions, or workflow you want visualized as a diagram..."
           disabled={generating}
           sx={{ mb: 3 }}
         />

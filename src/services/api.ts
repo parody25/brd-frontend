@@ -75,8 +75,12 @@ export const getProjectBRDs = async (projectId: string): Promise<BRDListResponse
   return response.data;
 };
 
-export const generateBRD = async (projectId: string, requirements: string): Promise<GenerateBRDResponse> => {
-  const response = await api.post<GenerateBRDResponse>(`/projects/${projectId}/generate_brd`, null, { params: { requirements } });
+export const generateBRD = async (projectId: string, requirements: string, processInstructions?: string): Promise<GenerateBRDResponse> => {
+  const requestBody: any = { requirements };
+  if (processInstructions) {
+    requestBody.process_instructions = processInstructions;
+  }
+  const response = await api.post<GenerateBRDResponse>(`/projects/${projectId}/generate_brd`, requestBody);
   return response.data;
 };
 
