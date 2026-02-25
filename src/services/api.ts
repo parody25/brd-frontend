@@ -1,4 +1,3 @@
-
 import axios, { AxiosRequestConfig } from 'axios';
 import {
   HealthCheckResponse,
@@ -75,7 +74,11 @@ export const getProjectBRDs = async (projectId: string): Promise<BRDListResponse
   return response.data;
 };
 
-export const generateBRD = async (projectId: string, requirements: string, processInstructions?: string): Promise<GenerateBRDResponse> => {
+export const generateBRD = async (
+  projectId: string,
+  requirements: string,
+  processInstructions?: string
+): Promise<GenerateBRDResponse> => {
   const requestBody: any = { requirements };
   if (processInstructions) {
     requestBody.process_instructions = processInstructions;
@@ -118,6 +121,11 @@ export const renameProject = async (
 export const getBRDTemplate = async (): Promise<BRDTemplateResponse> => {
   const response = await api.get<BRDTemplateResponse>('/brd_template');
   return response.data;
+};
+
+// === Helper for preview/download URL ===
+export const getDocumentDownloadUrl = (projectId: string, documentId: string): string => {
+  return `${API_BASE_URL}/projects/${encodeURIComponent(projectId)}/documents/${encodeURIComponent(documentId)}/download`;
 };
 
 export {};

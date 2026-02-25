@@ -66,6 +66,8 @@ export interface BRD {
   document_count: number;
   input_document_filenames: string[];
   generated_at: string;
+  // used to build preview urls; optional for backward compatibility
+  input_document_ids?: string[];
 }
 
 export interface BRDListResponse {

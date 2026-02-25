@@ -1,21 +1,48 @@
-
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Box, Button, Typography, Paper, List, ListItem, ListItemText,
-  IconButton, Alert, CircularProgress, Divider, Chip, Breadcrumbs, Link, Tabs, Tab, Tooltip
+  Box,
+  Button,
+  Typography,
+  Paper,
+  List,
+  ListItem,
+  ListItemText,
+  IconButton,
+  Alert,
+  CircularProgress,
+  Divider,
+  Chip,
+  Breadcrumbs,
+  Link,
+  Tabs,
+  Tab,
+  Tooltip
 } from '@mui/material';
 import {
-  ArrowBack as ArrowBackIcon, Delete as DeleteIcon, CloudUpload as CloudUploadIcon,
-  Description as DescriptionIcon, Folder as FolderIcon, AutoAwesome as AutoAwesomeIcon
+  ArrowBack as ArrowBackIcon,
+  Delete as DeleteIcon,
+  CloudUpload as CloudUploadIcon,
+  Description as DescriptionIcon,
+  Folder as FolderIcon,
+  AutoAwesome as AutoAwesomeIcon,
+  Visibility as VisibilityIcon
 } from '@mui/icons-material';
+
 import { useAppContext } from '../context/AppContext';
-import { getProjectDocuments, deleteDocument } from '../services/api';
+import {
+  getProjectDocuments,
+  deleteDocument,
+} from '../services/api';
+import { getDocumentDownloadUrl } from '../services/api';
+
 import { Document as DocumentType, BRD } from '../types';
+
 import DocumentUpload from './DocumentUpload';
 import BRDGenerator from './BRDGenerator';
 import BRDList from './BRDList';
 import BRDDetailsModal from './BRDDetailsModal';
+import DocumentPreviewDialog from './DocumentPreviewDialog';
 import SearchBar from './SearchBar';
 import EmptyState from './EmptyState';
 import ConfirmDialog from './ConfirmDialog';
@@ -27,17 +54,33 @@ const ProjectDashboard: React.FC = () => {
   const { state, dispatch } = useAppContext();
   const { showToast } = useUi();
 
+  // Data
   const [documents, setDocuments] = useState<DocumentType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Dialogs
   const [showUpload, setShowUpload] = useState(false);
   const [showBRDGenerator, setShowBRDGenerator] = useState(false);
   const [showBRDDetails, setShowBRDDetails] = useState(false);
+
+  // BRD selection
   const [selectedBRD, setSelectedBRD] = useState<BRD | null>(null);
   const [brdRefreshTrigger, setBrdRefreshTrigger] = useState(0);
+
+  // Tabs
   const [tab, setTab] = useState(0);
+
+  // Search
   const [docQuery, setDocQuery] = useState('');
+
+  // Delete confirm
   const [confirm, setConfirm] = useState<{ open: boolean; docId?: string; docName?: string }>({ open: false });
+
+  // Document Preview (Documents tab)
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewName, setPreviewName] = useState<string | undefined>(undefined);
 
   const currentProject = state.projects.find(p => p.project_id === projectId);
 
@@ -69,12 +112,15 @@ const ProjectDashboard: React.FC = () => {
     try {
       await deleteDocument(projectId, documentId);
       setDocuments(prev => prev.filter(doc => doc.id !== documentId));
+
+      // Decrement count on project card
       dispatch({
         type: 'SET_PROJECTS',
         payload: state.projects.map(p =>
-          p.project_id === projectId ? { ...p, document_count: p.document_count - 1 } : p
+          p.project_id === projectId ? { ...p, document_count: Math.max(0, p.document_count - 1) } : p
         ),
       });
+
       showToast('Document deleted', 'success');
     } catch {
       showToast('Failed to delete document', 'error');
@@ -84,16 +130,29 @@ const ProjectDashboard: React.FC = () => {
   const handleUploadSuccess = (document: DocumentType) => {
     setDocuments(prev => [...prev, document]);
     setShowUpload(false);
+
+    // Increment project counter
     dispatch({
       type: 'SET_PROJECTS',
       payload: state.projects.map(p =>
         p.project_id === projectId ? { ...p, document_count: p.document_count + 1 } : p
       ),
     });
+
     showToast('Document uploaded', 'success');
   };
 
+  // Preview handler for the Documents list
+  const handlePreviewDocument = (doc: DocumentType) => {
+    if (!projectId) return;
+    const url = getDocumentDownloadUrl(projectId, doc.id); // append ?format=txt if you prefer text
+    setPreviewUrl(url);
+    setPreviewName(doc.filename);
+    setPreviewOpen(true);
+  };
+
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString();
+
   const filteredDocs = useMemo(
     () => documents.filter(d => d.filename.toLowerCase().includes(docQuery.toLowerCase())),
     [documents, docQuery]
@@ -109,7 +168,6 @@ const ProjectDashboard: React.FC = () => {
 
   return (
     <Box>
-      
       {/* Breadcrumbs */}
       <Breadcrumbs sx={{ mb: 2 }}>
         <Link
@@ -128,12 +186,12 @@ const ProjectDashboard: React.FC = () => {
         </Typography>
       </Breadcrumbs>
 
-
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 2, flexWrap: 'wrap' }}>
         <IconButton onClick={() => navigate('/')} sx={{ mr: 1 }}>
           <ArrowBackIcon />
         </IconButton>
+
         <Box sx={{ flexGrow: 1 }}>
           <Typography variant="h4" component="h1">{currentProject.name}</Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', mt: 1, gap: 1 }}>
@@ -142,6 +200,7 @@ const ProjectDashboard: React.FC = () => {
             <Typography variant="body2" color="text.secondary">Created: {formatDate(currentProject.created_at)}</Typography>
           </Box>
         </Box>
+
         <Tooltip title={documents.length === 0 ? 'Upload documents first' : 'Generate a new BRD'}>
           <span>
             <Button
@@ -154,6 +213,7 @@ const ProjectDashboard: React.FC = () => {
             </Button>
           </span>
         </Tooltip>
+
         <Button variant="contained" startIcon={<CloudUploadIcon />} onClick={() => setShowUpload(true)}>
           Upload Document
         </Button>
@@ -177,7 +237,9 @@ const ProjectDashboard: React.FC = () => {
           </Box>
           <Divider sx={{ mb: 2 }} />
           {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress />
+            </Box>
           ) : filteredDocs.length === 0 ? (
             <EmptyState
               icon={<DescriptionIcon fontSize="inherit" />}
@@ -191,12 +253,34 @@ const ProjectDashboard: React.FC = () => {
                   key={document.id}
                   divider
                   secondaryAction={
-                    <IconButton edge="end" onClick={() => setConfirm({ open: true, docId: document.id, docName: document.filename })} color="error">
-                      <DeleteIcon />
-                    </IconButton>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      {/* Preview button (new) */}
+                      <IconButton
+                        edge="end"
+                        onClick={() => handlePreviewDocument(document)}
+                        title="Preview"
+                        aria-label="preview-document"
+                      >
+                        <VisibilityIcon />
+                      </IconButton>
+
+                      {/* Existing Delete */}
+                      <IconButton
+                        edge="end"
+                        onClick={() => setConfirm({ open: true, docId: document.id, docName: document.filename })}
+                        color="error"
+                        title="Delete"
+                        aria-label="delete-document"
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Box>
                   }
                 >
-                  <ListItemText primary={document.filename} secondary={`Uploaded: ${formatDate(document.uploaded_at)}`} />
+                  <ListItemText
+                    primary={document.filename}
+                    secondary={`Uploaded: ${formatDate(document.uploaded_at)}`}
+                  />
                 </ListItem>
               ))}
             </List>
@@ -229,14 +313,11 @@ const ProjectDashboard: React.FC = () => {
         <BRDGenerator
           projectId={projectId!}
           onClose={() => setShowBRDGenerator(false)}
-          onSuccess={() => {
-            setBrdRefreshTrigger(prev => prev + 1);
-            setShowBRDGenerator(false);
-          }}
+          onSuccess={() => { setBrdRefreshTrigger(prev => prev + 1); setShowBRDGenerator(false); }}
         />
       )}
 
-      {/* BRD Details Modal */}
+      {/* BRD Details Modal (no projectId prop needed; modal derives it from URL in your version) */}
       <BRDDetailsModal
         open={showBRDDetails}
         onClose={() => { setShowBRDDetails(false); setSelectedBRD(null); }}
@@ -252,6 +333,14 @@ const ProjectDashboard: React.FC = () => {
         onConfirm={() => { if (confirm.docId) handleDeleteDocument(confirm.docId); setConfirm({ open: false }); }}
         confirmColor="error"
         confirmText="Delete"
+      />
+
+      {/* Document preview dialog (Documents tab) */}
+      <DocumentPreviewDialog
+        open={previewOpen}
+        onClose={() => { setPreviewOpen(false); setPreviewUrl(null); setPreviewName(undefined); }}
+        url={previewUrl}
+        filename={previewName}
       />
     </Box>
   );
