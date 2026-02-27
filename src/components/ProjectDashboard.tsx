@@ -46,6 +46,8 @@ import DocumentPreviewDialog from './DocumentPreviewDialog';
 import SearchBar from './SearchBar';
 import EmptyState from './EmptyState';
 import ConfirmDialog from './ConfirmDialog';
+import UserStoriesGenerator from './UserStoriesGenerator';
+import UserStoriesList from './UserStoriesList';
 import { useUi } from '../context/UiContext';
 
 const ProjectDashboard: React.FC = () => {
@@ -70,6 +72,10 @@ const ProjectDashboard: React.FC = () => {
 
   // Tabs
   const [tab, setTab] = useState(0);
+
+  // User Stories
+  const [showUserStoriesGenerator, setShowUserStoriesGenerator] = useState(false);
+  const [userStoriesRefreshTrigger, setUserStoriesRefreshTrigger] = useState(0);
 
   // Search
   const [docQuery, setDocQuery] = useState('');
@@ -197,6 +203,7 @@ const ProjectDashboard: React.FC = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', mt: 1, gap: 1 }}>
             <Chip label={`${currentProject.document_count} documents`} size="small" color="primary" variant="outlined" />
             <Chip label={`${currentProject.brd_count} BRDs`} size="small" color="secondary" variant="outlined" />
+            <Chip label={`${state.user_stories.length} User Stories`} size="small" color="info" variant="outlined" />
             <Typography variant="body2" color="text.secondary">Created: {formatDate(currentProject.created_at)}</Typography>
           </Box>
         </Box>
@@ -217,6 +224,19 @@ const ProjectDashboard: React.FC = () => {
         <Button variant="contained" startIcon={<CloudUploadIcon />} onClick={() => setShowUpload(true)}>
           Upload Document
         </Button>
+        
+        <Tooltip title={currentProject.brd_count === 0 ? 'Generate a BRD first' : 'Generate User Stories from BRD'}>
+          <span>
+            <Button
+              variant="outlined"
+              startIcon={<AutoAwesomeIcon />}
+              onClick={() => setShowUserStoriesGenerator(true)}
+              disabled={currentProject.brd_count === 0}
+            >
+              Generate User Stories
+            </Button>
+          </span>
+        </Tooltip>
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
@@ -226,6 +246,7 @@ const ProjectDashboard: React.FC = () => {
         <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" allowScrollButtonsMobile>
           <Tab label={`Documents (${documents.length})`} />
           <Tab label={`BRDs (${currentProject.brd_count})`} />
+          <Tab label={`User Stories (${state.user_stories.length})`} />
         </Tabs>
       </Paper>
 
@@ -299,6 +320,16 @@ const ProjectDashboard: React.FC = () => {
         </Paper>
       )}
 
+      {/* User Stories Tab */}
+      {tab === 2 && (
+        <Paper sx={{ p: 3 }}>
+          <UserStoriesList
+            projectId={projectId!}
+            refreshTrigger={userStoriesRefreshTrigger}
+          />
+        </Paper>
+      )}
+
       {/* Upload Dialog */}
       {showUpload && (
         <DocumentUpload
@@ -314,6 +345,16 @@ const ProjectDashboard: React.FC = () => {
           projectId={projectId!}
           onClose={() => setShowBRDGenerator(false)}
           onSuccess={() => { setBrdRefreshTrigger(prev => prev + 1); setShowBRDGenerator(false); }}
+        />
+      )}
+
+      {/* User Stories Generator Dialog */}
+      {showUserStoriesGenerator && (
+        <UserStoriesGenerator
+          projectId={projectId!}
+          open={showUserStoriesGenerator}
+          onClose={() => setShowUserStoriesGenerator(false)}
+          onSuccess={() => { setUserStoriesRefreshTrigger(prev => prev + 1); setShowUserStoriesGenerator(false); }}
         />
       )}
 

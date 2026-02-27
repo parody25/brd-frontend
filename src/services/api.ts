@@ -9,6 +9,8 @@ import {
   BRDTemplateResponse,
   BRDListResponse,
   GenerateBRDResponse,
+  UserStoriesListResponse,
+  GenerateUserStoriesResponse,
 } from '../types';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
@@ -126,6 +128,36 @@ export const getBRDTemplate = async (): Promise<BRDTemplateResponse> => {
 // === Helper for preview/download URL ===
 export const getDocumentDownloadUrl = (projectId: string, documentId: string): string => {
   return `${API_BASE_URL}/projects/${encodeURIComponent(projectId)}/documents/${encodeURIComponent(documentId)}/download`;
+};
+
+// User Stories management
+export const getProjectUserStories = async (projectId: string): Promise<UserStoriesListResponse> => {
+  const response = await api.get<UserStoriesListResponse>(`/projects/${projectId}/user_stories`);
+  return response.data;
+};
+
+export const generateUserStories = async (
+  projectId: string,
+  brdId: string,
+  version: string
+): Promise<GenerateUserStoriesResponse> => {
+  const requestBody = { brd_id: brdId, version };
+  const response = await api.post<GenerateUserStoriesResponse>(`/projects/${projectId}/generate_user_stories`, requestBody);
+  return response.data;
+};
+
+export const downloadUserStories = async (projectId: string, userStoriesId: string): Promise<Blob> => {
+  const response = await api.get<Blob>(`/projects/${projectId}/user_stories/${userStoriesId}/download`, { responseType: 'blob' });
+  return response.data;
+};
+
+export const deleteUserStories = async (projectId: string, userStoriesId: string): Promise<{ message: string }> => {
+  const response = await api.delete<{ message: string }>(`/projects/${projectId}/user_stories/${userStoriesId}`);
+  return response.data;
+};
+
+export const getUserStoriesDownloadUrl = (projectId: string, userStoriesId: string): string => {
+  return `${API_BASE_URL}/projects/${encodeURIComponent(projectId)}/user_stories/${encodeURIComponent(userStoriesId)}/download`;
 };
 
 export {};

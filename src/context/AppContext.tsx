@@ -1,7 +1,7 @@
 
 // src/context/AppContext.tsx
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
-import { AppState, Project, Document, BRD } from '../types';
+import { AppState, Project, Document, BRD, UserStories } from '../types';
 
 type AppAction =
   | { type: 'SET_LOADING'; payload: boolean }
@@ -14,13 +14,17 @@ type AppAction =
   | { type: 'REMOVE_DOCUMENT'; payload: string }
   | { type: 'SET_BRDS'; payload: BRD[] }
   | { type: 'ADD_BRD'; payload: BRD }
-  | { type: 'REMOVE_BRD'; payload: string };
+  | { type: 'REMOVE_BRD'; payload: string }
+  | { type: 'SET_USER_STORIES'; payload: UserStories[] }
+  | { type: 'ADD_USER_STORY'; payload: UserStories }
+  | { type: 'REMOVE_USER_STORY'; payload: string };
 
 const initialState: AppState = {
   projects: [],
   currentProject: null,
   documents: [],
   brds: [],
+  user_stories: [],
   loading: false,
   error: null,
 };
@@ -38,6 +42,9 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
     case 'SET_BRDS': return { ...state, brds: action.payload };
     case 'ADD_BRD': return { ...state, brds: [...state.brds, action.payload] };
     case 'REMOVE_BRD': return { ...state, brds: state.brds.filter(brd => brd.id !== action.payload) };
+    case 'SET_USER_STORIES': return { ...state, user_stories: action.payload };
+    case 'ADD_USER_STORY': return { ...state, user_stories: [...state.user_stories, action.payload] };
+    case 'REMOVE_USER_STORY': return { ...state, user_stories: state.user_stories.filter(story => story.id !== action.payload) };
     default: return state;
   }
 };

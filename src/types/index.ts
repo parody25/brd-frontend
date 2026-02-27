@@ -18,6 +18,7 @@ export interface AppState {
   currentProject: Project | null;
   documents: Document[];
   brds: BRD[];
+  user_stories: UserStories[];
   loading: boolean;
   error: string | null;
 }
@@ -77,4 +78,58 @@ export interface BRDListResponse {
 export interface GenerateBRDResponse {
   brd_id: string;
   message: string;
+}
+
+// User Stories types
+export interface UserStory {
+  story_id: string;
+  title: string;
+  user_role: string;
+  description: string;
+  acceptance_criteria: string;
+  priority: string;
+  effort_estimate: string;
+  brd_reference: string;
+  version: string;
+}
+
+export interface Epic {
+  epic_id: string;
+  title: string;
+  description: string;
+  related_stories: string[];
+}
+
+export interface Dependency {
+  story_id: string;
+  depends_on: string;
+  dependency_type: string;
+}
+
+export interface UserStories {
+  id: string;
+  filename: string;
+  brd_id: string;
+  brd_filename: string;
+  version: string;
+  generated_at: string;
+  story_count: number;
+  epic_count: number;
+}
+
+export interface UserStoriesListResponse {
+  user_stories: UserStories[];
+}
+
+export interface GenerateUserStoriesRequest {
+  brd_id: string;
+  version: string;
+}
+
+export interface GenerateUserStoriesResponse {
+  user_stories_id: string;
+  message: string;
+  filename: string;
+  story_count: number;
+  epic_count: number;
 }
