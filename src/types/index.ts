@@ -133,3 +133,69 @@ export interface GenerateUserStoriesResponse {
   story_count: number;
   epic_count: number;
 }
+
+// Jira Integration types
+export interface JiraConfig {
+  jira_url: string;
+  email: string;
+  api_token: string;
+  project_key: string;
+}
+
+export interface JiraProject {
+  key: string;
+  name: string;
+  id: string;
+}
+
+export interface JiraIssueType {
+  name: string;
+  id: string;
+  description: string;
+}
+
+export interface JiraSyncRequest {
+  jira_url: string;
+  project_key: string;
+  auth_token: string;
+}
+
+export interface JiraSyncResult {
+  success: boolean;
+  message: string;
+  sync_results?: {
+    success: Array<{
+      issue_key: string;
+      issue_id: string;
+      url: string;
+      type: string;
+    }>;
+    failed: Array<{
+      title: string;
+      error: string;
+    }>;
+    total: number;
+  };
+  project_key?: string;
+  user_stories_id?: string;
+}
+
+export interface JiraConnectionTest {
+  success: boolean;
+  message: string;
+  projects?: JiraProject[];
+  issue_types?: JiraIssueType[];
+}
+
+export interface JiraState {
+  config: JiraConfig | null;
+  isConnected: boolean;
+  isLoading: boolean;
+  error: string | null;
+  syncProgress: {
+    isSyncing: boolean;
+    progress: number;
+    message: string;
+    results: JiraSyncResult | null;
+  };
+}

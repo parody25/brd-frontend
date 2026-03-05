@@ -160,4 +160,34 @@ export const getUserStoriesDownloadUrl = (projectId: string, userStoriesId: stri
   return `${API_BASE_URL}/projects/${encodeURIComponent(projectId)}/user_stories/${encodeURIComponent(userStoriesId)}/download`;
 };
 
+// Jira Integration API endpoints
+export const getJiraConfig = async (): Promise<any> => {
+  const response = await api.get('/jira/config');
+  return response.data;
+};
+
+export const testJiraConnection = async (config: any): Promise<any> => {
+  const response = await api.post('/jira/test-connection', config);
+  return response.data;
+};
+
+export const getJiraProjects = async (): Promise<any> => {
+  const response = await api.get('/jira/projects');
+  return response.data;
+};
+
+export const getJiraIssueTypes = async (): Promise<any> => {
+  const response = await api.get('/jira/issue-types');
+  return response.data;
+};
+
+export const syncUserStoriesToJira = async (
+  projectId: string,
+  userStoriesId: string,
+  config: any
+): Promise<any> => {
+  const response = await api.post(`/projects/${projectId}/user_stories/${userStoriesId}/jira-sync`, config);
+  return response.data;
+};
+
 export {};

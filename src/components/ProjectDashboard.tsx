@@ -48,6 +48,7 @@ import EmptyState from './EmptyState';
 import ConfirmDialog from './ConfirmDialog';
 import UserStoriesGenerator from './UserStoriesGenerator';
 import UserStoriesList from './UserStoriesList';
+import UserStoriesListWithJira from './UserStoriesListWithJira';
 import { useUi } from '../context/UiContext';
 
 const ProjectDashboard: React.FC = () => {
@@ -323,7 +324,7 @@ const ProjectDashboard: React.FC = () => {
       {/* User Stories Tab */}
       {tab === 2 && (
         <Paper sx={{ p: 3 }}>
-          <UserStoriesList
+          <UserStoriesListWithJira
             projectId={projectId!}
             refreshTrigger={userStoriesRefreshTrigger}
           />

@@ -33,20 +33,21 @@ import {
 import { useAppContext } from '../context/AppContext';
 import { useJiraContext } from '../context/JiraContext';
 import { useUi } from '../context/UiContext';
-import { getProjectUserStories, downloadUserStories, deleteUserStories, syncUserStoriesToJira } from '../services/api';
+import { getProjectUserStories, downloadUserStories, deleteUserStories, syncUserStoriesToJira, getJiraProjects } from '../services/api';
 import { UserStories, JiraProject } from '../types';
 import ConfirmDialog from './ConfirmDialog';
 import JiraConfigModal from './JiraConfigModal';
 import SyncProgressModal from './SyncProgressModal';
 
-interface UserStoriesListProps {
+interface UserStoriesListWithJiraProps {
   projectId: string;
   refreshTrigger?: number;
   onSuccess?: () => void;
 }
 
-const UserStoriesList: React.FC<UserStoriesListProps> = ({ projectId, refreshTrigger = 0 }) => {
+const UserStoriesListWithJira: React.FC<UserStoriesListWithJiraProps> = ({ projectId, refreshTrigger = 0 }) => {
   const { dispatch } = useAppContext();
+  const { state: jiraState, dispatch: jiraDispatch } = useJiraContext();
   const { showToast } = useUi();
   
   const [userStories, setUserStories] = useState<UserStories[]>([]);
@@ -55,6 +56,14 @@ const UserStoriesList: React.FC<UserStoriesListProps> = ({ projectId, refreshTri
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; id?: string; filename?: string }>({ open: false });
   const [infoOpen, setInfoOpen] = useState(false);
   const [selectedInfo, setSelectedInfo] = useState<UserStories | null>(null);
+  const [jiraConfigOpen, setJiraConfigOpen] = useState(false);
+  const [syncModalOpen, setSyncModalOpen] = useState(false);
+  const [syncTarget, setSyncTarget] = useState<{ id: string; filename: string } | null>(null);
+  const [projectKey, setProjectKey] = useState('');
+  const [availableProjects, setAvailableProjects] = useState<JiraProject[]>([]);
+  const [syncProjectModalOpen, setSyncProjectModalOpen] = useState(false);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
 
   const loadUserStories = useCallback(async () => {
     if (!projectId) return;
@@ -71,9 +80,29 @@ const UserStoriesList: React.FC<UserStoriesListProps> = ({ projectId, refreshTri
     }
   }, [projectId, dispatch]);
 
+  const loadJiraProjects = useCallback(async () => {
+    try {
+      const response = await getJiraProjects();
+      if (response.projects) {
+        setAvailableProjects(response.projects);
+        // Set default project key from config if available
+        if (jiraState.config?.project_key) {
+          setProjectKey(jiraState.config.project_key);
+        } else if (response.projects.length > 0) {
+          setProjectKey(response.projects[0].key);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load Jira projects:', error);
+    }
+  }, [jiraState.config?.project_key]);
+
   useEffect(() => {
     loadUserStories();
-  }, [loadUserStories, refreshTrigger]);
+    if (jiraState.isConnected) {
+      loadJiraProjects();
+    }
+  }, [loadUserStories, refreshTrigger, jiraState.isConnected, loadJiraProjects]);
 
   const handleDownload = async (userStoriesId: string, filename: string) => {
     try {
@@ -105,6 +134,63 @@ const UserStoriesList: React.FC<UserStoriesListProps> = ({ projectId, refreshTri
     }
   };
 
+  const handleSyncToJira = async () => {
+    if (!syncTarget || !jiraState.config) return;
+    
+    jiraDispatch({ type: 'SET_SYNC_PROGRESS', payload: { isSyncing: true, progress: 0, message: 'Starting sync to Jira...' } });
+    setSyncModalOpen(true);
+    
+    try {
+      const config = {
+        jira_url: jiraState.config.jira_url,
+        project_key: projectKey,
+        auth_token: jiraState.config.api_token
+      };
+      
+      const result = await syncUserStoriesToJira(projectId, syncTarget.id, config);
+      
+      jiraDispatch({ 
+        type: 'SET_SYNC_RESULTS', 
+        payload: result 
+      });
+      
+      jiraDispatch({ 
+        type: 'SET_SYNC_PROGRESS', 
+        payload: { 
+          isSyncing: false, 
+          progress: 100, 
+          message: result.message || 'Sync completed' 
+        } 
+      });
+      
+      showToast(result.message || 'Sync completed successfully', 'success');
+    } catch (error: any) {
+      const message = error.response?.data?.detail || 'Sync failed';
+      jiraDispatch({ 
+        type: 'SET_SYNC_PROGRESS', 
+        payload: { 
+          isSyncing: false, 
+          progress: 0, 
+          message: message 
+        } 
+      });
+      showToast(message, 'error');
+    }
+  };
+
+  const handleOpenJiraConfig = () => {
+    setJiraConfigOpen(true);
+  };
+
+  const handleCloseJiraConfig = () => {
+    setJiraConfigOpen(false);
+  };
+
+  const handleJiraConfigSuccess = () => {
+    loadJiraProjects();
+    showToast('Jira configuration updated', 'success');
+  };
+
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString();
 
   const handleInfoClick = (story: UserStories) => {
@@ -112,9 +198,45 @@ const UserStoriesList: React.FC<UserStoriesListProps> = ({ projectId, refreshTri
     setInfoOpen(true);
   };
 
+  const handleProjectSelection = () => {
+    if (availableProjects.length > 0) {
+      setProjectKey(availableProjects[0].key);
+    }
+    setSyncProjectModalOpen(false);
+    setSyncModalOpen(true);
+  };
+
+  const handleProjectModalClose = () => {
+    setSyncProjectModalOpen(false);
+    setSyncTarget(null);
+  };
+
+
   return (
     <Box>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+      {/* Jira Configuration Status */}
+      <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          {jiraState.isConnected ? (
+            <Chip label="Jira Connected" color="success" variant="outlined" />
+          ) : (
+            <Chip label="Jira Not Connected" color="error" variant="outlined" />
+          )}
+          {jiraState.config && jiraState.config.project_key && (
+            <Chip label={`Default Project: ${jiraState.config.project_key}`} variant="outlined" />
+          )}
+        </Box>
+        <Button
+          startIcon={<SettingsIcon />}
+          onClick={handleOpenJiraConfig}
+          variant="outlined"
+          color="primary"
+        >
+          Jira Settings
+        </Button>
+      </Box>
 
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
@@ -134,8 +256,12 @@ const UserStoriesList: React.FC<UserStoriesListProps> = ({ projectId, refreshTri
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Typography variant="h6">{story.filename}</Typography>
                       <Chip label={`v${story.version}`} size="small" color="primary" />
-                      <Chip label={`${story.story_count} stories`} size="small" variant="outlined" />
-                      <Chip label={`${story.epic_count} epics`} size="small" variant="outlined" />
+                      {story.story_count > 0 && (
+                        <Chip label={`${story.story_count} stories`} size="small" variant="outlined" />
+                      )}
+                      {story.epic_count > 0 && (
+                        <Chip label={`${story.epic_count} epics`} size="small" variant="outlined" />
+                      )}
                     </Box>
                   }
                   secondary={
@@ -168,6 +294,29 @@ const UserStoriesList: React.FC<UserStoriesListProps> = ({ projectId, refreshTri
                       >
                         <DownloadIcon />
                       </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Sync to Jira">
+                      <span>
+                        <IconButton
+                          edge="end"
+                          onClick={() => {
+                            setSyncTarget({ id: story.id, filename: story.filename });
+                            if (jiraState.config?.project_key) {
+                              // Use default project key if available
+                              setProjectKey(jiraState.config.project_key);
+                              setSyncModalOpen(true);
+                            } else {
+                              // Prompt user to select project
+                              setSyncProjectModalOpen(true);
+                            }
+                          }}
+                          aria-label="sync"
+                          disabled={!jiraState.isConnected}
+                          color="primary"
+                        >
+                          <SyncIcon />
+                        </IconButton>
+                      </span>
                     </Tooltip>
                     <Tooltip title="Delete">
                       <IconButton
@@ -237,8 +386,67 @@ const UserStoriesList: React.FC<UserStoriesListProps> = ({ projectId, refreshTri
         confirmColor="error"
         confirmText="Delete"
       />
+
+      {/* Jira Configuration Modal */}
+      <JiraConfigModal
+        open={jiraConfigOpen}
+        onClose={handleCloseJiraConfig}
+        onSuccess={handleJiraConfigSuccess}
+      />
+
+      {/* Project Selection Modal */}
+      <Dialog open={syncProjectModalOpen} onClose={handleProjectModalClose} maxWidth="sm" fullWidth>
+        <DialogTitle>Select Jira Project</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Please select a Jira project to sync the User Stories to:
+          </Typography>
+          <FormControl fullWidth>
+            <InputLabel>Project</InputLabel>
+            <Select
+              value={projectKey}
+              onChange={(e) => setProjectKey(e.target.value)}
+              label="Project"
+            >
+              {availableProjects.map((project) => (
+                <MenuItem key={project.key} value={project.key}>
+                  {project.key} - {project.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleProjectModalClose}>Cancel</Button>
+          <Button
+            onClick={handleProjectSelection}
+            disabled={!projectKey || availableProjects.length === 0}
+            variant="contained"
+            color="primary"
+          >
+            Continue to Sync
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Sync Progress Modal */}
+      <SyncProgressModal
+        open={syncModalOpen}
+        onClose={() => {
+          setSyncModalOpen(false);
+          setSyncTarget(null);
+          jiraDispatch({ type: 'RESET_SYNC_PROGRESS' });
+        }}
+        progress={jiraState.syncProgress.progress}
+        message={jiraState.syncProgress.message}
+        isSyncing={jiraState.syncProgress.isSyncing}
+        results={jiraState.syncProgress.results?.sync_results || null}
+        onCancel={() => {
+          // Handle cancel if needed
+        }}
+      />
     </Box>
   );
 };
 
-export default UserStoriesList;
+export default UserStoriesListWithJira;
