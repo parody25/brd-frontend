@@ -3,6 +3,7 @@ export interface Project {
   name: string;
   document_count: number;
   brd_count: number;
+  user_stories_count: number;
   created_at: string;
 }
 

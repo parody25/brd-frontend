@@ -29,7 +29,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
-import { getProjects, createProject, deleteProject, renameProject } from '../services/api';
+import { getProjects, createProject, deleteProject, renameProject, getProjectUserStories } from '../services/api';
 import { Project } from '../types';
 import SearchBar from './SearchBar';
 import EmptyState from './EmptyState';
@@ -57,7 +57,25 @@ const ProjectList: React.FC = () => {
       dispatch({ type: 'SET_LOADING', payload: true });
       try {
         const response = await getProjects();
-        dispatch({ type: 'SET_PROJECTS', payload: response.projects });
+        
+        const projectsWithUserStoriesCount = await Promise.all(
+          response.projects.map(async (project) => {
+            try {
+              const userStoriesResponse = await getProjectUserStories(project.project_id);
+              return {
+                ...project,
+                user_stories_count: userStoriesResponse.user_stories.length
+              };
+            } catch {
+              return {
+                ...project,
+                user_stories_count: 0
+              };
+            }
+          })
+        );
+        
+        dispatch({ type: 'SET_PROJECTS', payload: projectsWithUserStoriesCount });
         dispatch({ type: 'SET_ERROR', payload: null });
       } catch (error) {
         dispatch({
@@ -81,6 +99,7 @@ const ProjectList: React.FC = () => {
         name: response.name,
         document_count: 0,
         brd_count: 0,
+        user_stories_count: 0,
         created_at: new Date().toISOString(),
       };
       dispatch({ type: 'ADD_PROJECT', payload: newProject });
@@ -254,6 +273,12 @@ const ProjectList: React.FC = () => {
                       {project.brd_count} BRDs
                     </Typography>
                   </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <DescriptionIcon sx={{ mr: 1, fontSize: 'small', color: 'secondary.main' }} />
+                    <Typography variant="body2" color="text.secondary">
+                      {project.user_stories_count} User Stories
+                    </Typography>
+                  </Box>
                   <Typography variant="body2" color="text.secondary">
                     Created: {formatDate(project.created_at)}
                   </Typography>
@@ -271,6 +296,14 @@ const ProjectList: React.FC = () => {
                     size="small"
                     color="secondary"
                     variant="outlined"
+                    sx={{ mr: 1 }}
+                  />
+                  <Chip
+                    label={`${project.user_stories_count} User Stories`}
+                    size="small"
+                    color="info"
+                    variant="outlined"
+                    sx={{ mr: 1 }}
                   />
                 </CardActions>
               </Card>

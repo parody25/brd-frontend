@@ -149,6 +149,21 @@ const ProjectDashboard: React.FC = () => {
     showToast('Document uploaded', 'success');
   };
 
+  const handleUserStoriesGenerationSuccess = () => {
+    // Increment project User Stories counter
+    dispatch({
+      type: 'SET_PROJECTS',
+      payload: state.projects.map(p =>
+        p.project_id === projectId ? { ...p, user_stories_count: p.user_stories_count + 1 } : p
+      ),
+    });
+
+    // Refresh the User Stories list
+    setUserStoriesRefreshTrigger(prev => prev + 1);
+    setShowUserStoriesGenerator(false);
+    showToast('User Stories generated successfully', 'success');
+  };
+
   // Preview handler for the Documents list
   const handlePreviewDocument = (doc: DocumentType) => {
     if (!projectId) return;
@@ -204,7 +219,7 @@ const ProjectDashboard: React.FC = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', mt: 1, gap: 1 }}>
             <Chip label={`${currentProject.document_count} documents`} size="small" color="primary" variant="outlined" />
             <Chip label={`${currentProject.brd_count} BRDs`} size="small" color="secondary" variant="outlined" />
-            <Chip label={`${state.user_stories.length} User Stories`} size="small" color="info" variant="outlined" />
+            <Chip label={`${currentProject.user_stories_count} User Stories`} size="small" color="info" variant="outlined" />
             <Typography variant="body2" color="text.secondary">Created: {formatDate(currentProject.created_at)}</Typography>
           </Box>
         </Box>
@@ -355,7 +370,7 @@ const ProjectDashboard: React.FC = () => {
           projectId={projectId!}
           open={showUserStoriesGenerator}
           onClose={() => setShowUserStoriesGenerator(false)}
-          onSuccess={() => { setUserStoriesRefreshTrigger(prev => prev + 1); setShowUserStoriesGenerator(false); }}
+          onSuccess={handleUserStoriesGenerationSuccess}
         />
       )}
 
