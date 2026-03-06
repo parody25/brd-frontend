@@ -199,11 +199,12 @@ const UserStoriesListWithJira: React.FC<UserStoriesListWithJiraProps> = ({ proje
   };
 
   const handleProjectSelection = () => {
-    if (availableProjects.length > 0) {
-      setProjectKey(availableProjects[0].key);
+    if (availableProjects.length > 0 && projectKey) {
+      setSyncProjectModalOpen(false);
+      setSyncModalOpen(true);
+      // Trigger the sync immediately
+      handleSyncToJira();
     }
-    setSyncProjectModalOpen(false);
-    setSyncModalOpen(true);
   };
 
   const handleProjectModalClose = () => {
