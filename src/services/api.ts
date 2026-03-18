@@ -138,10 +138,36 @@ export const getProjectUserStories = async (projectId: string): Promise<UserStor
 
 export const generateUserStories = async (
   projectId: string,
-  brdId: string,
-  version: string
+  brdId: string | null,
+  version: string,
+  customerJourneyContent?: string | null,
+  customerJourneyFile?: File | null
 ): Promise<GenerateUserStoriesResponse> => {
-  const requestBody = { brd_id: brdId, version };
+  // If we have a file, use multipart form data
+  if (customerJourneyFile) {
+    const formData = new FormData();
+    formData.append('customer_journey_file', customerJourneyFile);
+    formData.append('version', version);
+    
+    const response = await api.post<GenerateUserStoriesResponse>(
+      `/projects/${projectId}/generate_user_stories`, 
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    );
+    return response.data;
+  }
+  
+  // Otherwise use JSON payload
+  const requestBody: any = { version };
+  
+  if (brdId) {
+    requestBody.brd_id = brdId;
+  }
+  
+  if (customerJourneyContent) {
+    requestBody.customer_journey_content = customerJourneyContent;
+  }
+  
   const response = await api.post<GenerateUserStoriesResponse>(`/projects/${projectId}/generate_user_stories`, requestBody);
   return response.data;
 };
